@@ -1,58 +1,71 @@
 pipeline {
     agent any
-    
-    environment {
-        DOCKER_HUB = credentials('docker-hub-cred')
+
+    options {
+        timestamps() // Optional: Adds timestamps to console output
     }
-    
+
     stages {
+
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/your-repo/devops-cicd-project.git'
+                git branch: 'main', url: 'https://github.com/HarshaDoda/devops-cicd-project.git'
             }
         }
-        
-        stage('Build') {
+
+        stage('Build Docker Image') {
             steps {
                 bat 'docker-compose build'
             }
         }
-        
-        stage('Test') {
+
+        stage('Run Tests') {
             steps {
                 bat 'python -m pytest app/tests/'
             }
         }
-        
-        stage('Code Quality') {
+
+        stage('Code Quality Scan') {
             steps {
-                withSonarQubeEnv('sonarqube') {
-                    bat 'sonar-scanner'
+                // Uncomment and configure your SonarQube env if needed
+                // withSonarQubeEnv('sonarqube') {
+                //     bat 'sonar-scanner'
+                // }
+                echo 'Code quality analysis placeholder'
+            }
+        }
+
+        stage('Push to DockerHub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_HUB_USR',
+                        passwordVariable: 'DOCKER_HUB_PSW'
+                    )]) {
+                        bat '''
+                        echo %DOCKER_HUB_PSW% | docker login -u %DOCKER_HUB_USR% --password-stdin
+                        docker tag devops-cicd-project_web:latest killer/myapp:latest
+                        docker push killer/myapp:latest
+                        '''
+                    }
                 }
             }
         }
-        
-        stage('Push to Registry') {
-            steps {
-                bat 'docker login -u %DOCKER_HUB_USR% -p %DOCKER_HUB_PSW%'
-                bat 'docker tag devops-cicd-project_web:latest myrepo/myapp:latest'
-                bat 'docker push myrepo/myapp:latest'
-            }
-        }
-        
-        stage('Deploy') {
+
+        stage('Deploy Locally') {
             steps {
                 bat 'docker-compose up -d'
             }
         }
     }
-    
+
     post {
         success {
-            slackSend(color: 'good', message: "Build ${BUILD_NUMBER} succeeded!")
+            slackSend(color: 'good', message: "✅ Build #${BUILD_NUMBER} succeeded!")
         }
         failure {
-            slackSend(color: 'danger', message: "Build ${BUILD_NUMBER} failed!")
+            slackSend(color: 'danger', message: "❌ Build #${BUILD_NUMBER} failed!")
         }
     }
 }
