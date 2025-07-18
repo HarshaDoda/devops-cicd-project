@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_HUB = credentials('docker-hub-cred')
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/your-repo/devops-cicd-project.git'
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                bat 'docker-compose build'
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                bat 'python -m pytest app/tests/'
+            }
+        }
+        
+        stage('Code Quality') {
+            steps {
+                withSonarQubeEnv('sonarqube') {
+                    bat 'sonar-scanner'
+                }
+            }
+        }
+        
+        stage('Push to Registry') {
+            steps {
+                bat 'docker login -u %DOCKER_HUB_USR% -p %DOCKER_HUB_PSW%'
+                bat 'docker tag devops-cicd-project_web:latest myrepo/myapp:latest'
+                bat 'docker push myrepo/myapp:latest'
+            }
+        }
+        
+        stage('Deploy') {
+            steps {
+                bat 'docker-compose up -d'
+            }
+        }
+    }
+    
+    post {
+        success {
+            slackSend(color: 'good', message: "Build ${BUILD_NUMBER} succeeded!")
+        }
+        failure {
+            slackSend(color: 'danger', message: "Build ${BUILD_NUMBER} failed!")
+        }
+    }
+}
