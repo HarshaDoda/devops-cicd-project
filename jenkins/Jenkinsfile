@@ -15,7 +15,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat 'docker-compose build'
+                bat 'docker-compose -f app/docker-compose.yml build'
             }
         }
 
