@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     options {
-        timestamps() // Optional: Adds timestamps to console output
+        timestamps()
     }
 
     stages {
@@ -27,27 +27,29 @@ pipeline {
 
         stage('Code Quality Scan') {
             steps {
-                // Uncomment and configure your SonarQube env if needed
+                echo 'Code quality analysis placeholder'
+                // Uncomment if using SonarQube
                 // withSonarQubeEnv('sonarqube') {
                 //     bat 'sonar-scanner'
                 // }
-                echo 'Code quality analysis placeholder'
             }
         }
 
         stage('Push to DockerHub') {
             steps {
-                script {
-                    withCredentials([usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DOCKER_HUB_USR',
-                        passwordVariable: 'DOCKER_HUB_PSW'
-                    )]) {
-                        bat '''
-                         docker build -t dodaharsha/myapp:latest .
-                         echo %DOCKER_HUB_PSW% | docker login -u %DOCKER_HUB_USR% --password-stdin
-                         docker push dodaharsha/myapp:latest
-                        '''
+                dir('app') {
+                    script {
+                        withCredentials([usernamePassword(
+                            credentialsId: 'dockerhub-creds',
+                            usernameVariable: 'DOCKER_HUB_USR',
+                            passwordVariable: 'DOCKER_HUB_PSW'
+                        )]) {
+                            bat '''
+                            docker build -t %DOCKER_HUB_USR%/myapp:latest .
+                            echo %DOCKER_HUB_PSW% | docker login -u %DOCKER_HUB_USR% --password-stdin
+                            docker push %DOCKER_HUB_USR%/myapp:latest
+                            '''
+                        }
                     }
                 }
             }
@@ -55,11 +57,14 @@ pipeline {
 
         stage('Deploy Locally') {
             steps {
-                bat 'docker-compose up -d'
+                dir('app') {
+                    bat 'docker-compose up -d'
+                }
             }
         }
     }
 
+    // Optional: Slack notifications
     // post {
     //     success {
     //         slackSend(color: 'good', message: "✅ Build #${BUILD_NUMBER} succeeded!")
