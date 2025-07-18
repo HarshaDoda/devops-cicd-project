@@ -44,9 +44,9 @@ pipeline {
                         passwordVariable: 'DOCKER_HUB_PSW'
                     )]) {
                         bat '''
-                        echo %DOCKER_HUB_PSW% | docker login -u %DOCKER_HUB_USR% --password-stdin
-                        docker tag devops-cicd-project_web:latest killer/myapp:latest
-                        docker push killer/myapp:latest
+                         echo %DOCKER_HUB_PSW% | docker login -u %DOCKER_HUB_USR% --password-stdin
+                         docker tag devops-cicd-project_web:latest %DOCKER_HUB_USR%/myapp:latest
+                         docker push %DOCKER_HUB_USR%/myapp:latest
                         '''
                     }
                 }
