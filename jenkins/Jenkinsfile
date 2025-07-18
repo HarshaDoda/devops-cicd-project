@@ -21,7 +21,7 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                bat 'python -m pytest app/tests/'
+                bat 'docker-compose run --rm web python -m pytest app/tests/'
             }
         }
 
